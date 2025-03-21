@@ -1,5 +1,4 @@
 const pool = require('mysql2/promise')
-const InvariantError = require('../exceptions/InvariantError')
 const NotFoundError = require('../exceptions/NotFoundError')
 
 class LaboratoryService {
@@ -26,6 +25,10 @@ class LaboratoryService {
 
     async getDetailData(appointmentId, date, time) {
         const [rows] = await this._pool.query("SELECT jpl.kd_jenis_prw AS kodePerawatan, jpl.nm_perawatan AS namaPerawatan, tl.pemeriksaan, dpl.nilai AS hasil, tl.satuan FROM detail_periksa_lab dpl JOIN periksa_lab pl ON dpl.no_rawat = pl.no_rawat AND dpl.tgl_periksa = pl.tgl_periksa AND dpl.jam = pl.jam JOIN jns_perawatan_lab jpl ON dpl.kd_jenis_prw = jpl.kd_jenis_prw JOIN template_laboratorium tl ON dpl.id_template = tl.id_template WHERE pl.no_rawat = ? AND pl.tgl_periksa = ? AND pl.jam = ? ORDER BY jpl.kd_jenis_prw", [appointmentId, date, time])
+
+        if (rows.length < 1) {
+            throw new NotFoundError("Data tidak ditemukan")
+        }
 
         const groupedResults = rows.reduce((acc, row) => {
             const existing = acc.find(item => item.kodePerawatan === row.kodePerawatan);
