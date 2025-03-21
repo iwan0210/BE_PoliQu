@@ -2,7 +2,7 @@ const pool = require('mysql2/promise')
 const CryptoJS = require('crypto-js')
 const NotFoundError = require('../exceptions/NotFoundError')
 const InvariantError = require('../exceptions/InvariantError')
-const client = require('../../server')
+const client = require('../../whatsappClient')
 
 class RegisterService {
     constructor() {
@@ -138,7 +138,6 @@ class RegisterService {
     async sendOTPMessages(otp, phoneNumber) {
         const number = this.convertToInternationalFormat("082215207561") + '@c.us'
         const message = `Kode OTP Anda adalah: *${otp}*\nKode ini berlaku selama 5 menit. Jangan berikan kepada siapa pun.\n\nTerima kasih.`
-
         await client.sendMessage(number, message)
     }
 
