@@ -1,6 +1,5 @@
 const pool = require('mysql2/promise')
 const NotFoundError = require('../exceptions/NotFoundError')
-const { app } = require('firebase-admin')
 
 class AppointmentService {
     constructor() {

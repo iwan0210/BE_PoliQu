@@ -2,6 +2,9 @@ class LaboratoryHandler {
     constructor(service, validator) {
         this._service = service
         this._validator = validator
+
+        this.getAllData = this.getAllData.bind(this)
+        this.getDetailData = this.getDetailData.bind(this)
     }
 
     async getAllData(req, res, next) {

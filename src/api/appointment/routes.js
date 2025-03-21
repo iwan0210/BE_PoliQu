@@ -8,7 +8,7 @@ const appointmentService = new AppointmentService()
 const appointmentHandler = new AppointmentHandler(appointmentService, AppointmentValidator)
 
 router.get('/', verifyToken, appointmentHandler.getAllData)
-router.post('/', verifyToken, appointmentHandler.createData)
+router.post('/', verifyToken, appointmentHandler.addData)
 router.get('/:patientVisitId', verifyToken, appointmentHandler.getDetailData)
 router.put('/:patientVisitId', verifyToken, appointmentHandler.cancelAppointment)
 router.get('/active/:patientVisitId', verifyToken, appointmentHandler.getDetailActiveData)

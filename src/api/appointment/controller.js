@@ -2,6 +2,12 @@ class AppointmentHandler {
     constructor(service, validator) {
         this._service = service
         this._validator = validator
+
+        this.getAllData = this.getAllData.bind(this)
+        this.getDetailData = this.getDetailData.bind(this)
+        this.getDetailActiveData = this.getDetailActiveData.bind(this)
+        this.addData = this.addData.bind(this)
+        this.cancelAppointment = this.cancelAppointment.bind(this)
     }
 
     async getAllData(req, res, next) {

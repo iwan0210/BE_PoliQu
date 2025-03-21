@@ -1,6 +1,9 @@
 class DoctorsHandler {
     constructor(service) {
         this._service = service
+
+        this.getAllDoctorsSchedules = this.getAllDoctorsSchedules.bind(this)
+        this.getDoctorsByDate = this.getDoctorsByDate.bind(this)
     }
 
     async getAllDoctorsSchedules(_, res, next) {

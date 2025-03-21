@@ -1,6 +1,7 @@
 class BedsHandler {
     constructor(service) {
         this._service = service
+        this.getAllBeds = this.getAllBeds.bind(this)
     }
 
     async getAllBeds(_, res, next) {
