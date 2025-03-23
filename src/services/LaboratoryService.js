@@ -18,7 +18,7 @@ class LaboratoryService {
     async getAllData(MRId, page, limit) {
         const offset = (page - 1) * limit
 
-        const [records] = await this._pool.query("SELECT no_rawat, tgl_periksa, jam FROM periksa_lab WHERE no_rkm_medis = ? GROUP BY tgl_periksa, jam, no_rawat ORDER BY tgl_periksa DESC, jam DESC LIMIT ? OFFSET ?", [MRId, limit, offset])
+        const [records] = await this._pool.query("SELECT periksa_lab.no_rawat as appointmentId, periksa_lab.tgl_periksa as date, periksa_lab.jam as time FROM periksa_lab JOIN reg_periksa ON periksa_lab.no_rawat = reg_periksa.no_rawat WHERE reg_periksa.no_rkm_medis = ? GROUP BY periksa_lab.tgl_periksa, periksa_lab.jam, periksa_lab.no_rawat ORDER BY tgl_periksa DESC, jam DESC LIMIT ? OFFSET ?", [MRId, limit, offset])
 
         return records
     }
@@ -30,27 +30,27 @@ class LaboratoryService {
             throw new NotFoundError("Data tidak ditemukan")
         }
 
-        const groupedResults = rows.reduce((acc, row) => {
-            const existing = acc.find(item => item.kodePerawatan === row.kodePerawatan);
-            if (existing) {
-                existing.detail.push({
+        const groupedResults = Array.from(
+            rows.reduce((acc, row) => {
+                // Check if treatmentCode already exists in the Map
+                if (!acc.has(row.kodePerawatan)) {
+                    acc.set(row.kodePerawatan, {
+                        treatmentCode: row.kodePerawatan,
+                        treatmentName: row.namaPerawatan,
+                        details: []
+                    });
+                }
+        
+                // Push examination details into the existing treatmentCode group
+                acc.get(row.kodePerawatan).details.push({
                     examination: row.pemeriksaan,
                     result: row.hasil,
                     unit: row.satuan
                 });
-            } else {
-                acc.push({
-                    treatmentCode: row.kodePerawatan,
-                    treatmentName: row.namaPerawatan,
-                    details: [{
-                        examination: row.pemeriksaan,
-                        result: row.hasil,
-                        unit: row.satuan
-                    }]
-                });
-            }
-            return acc;
-        }, []);
+        
+                return acc;
+            }, new Map()).values() // Convert Map values to an array
+        );
 
         return groupedResults
     }

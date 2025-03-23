@@ -4,6 +4,12 @@ class UsersHandler {
         this._validator = validator
         this._tokenManager = tokenManager
         this._jwt = jwt
+
+        this.login = this.login.bind(this)
+        this.refreshToken = this.refreshToken.bind(this)
+        this.getUserProfile = this.getUserProfile.bind(this)
+        this.changePassword = this.changePassword.bind(this)
+        this.logout = this.logout.bind(this)
     }
 
     async login(req, res, next) {
@@ -18,7 +24,7 @@ class UsersHandler {
 
             const refreshToken = this._tokenManager.generateRefreshToken(userCred)
 
-            await this._service.saveRefreshToken(userCred.MRId, refreshToken)
+            await this._service.saveRefreshToken(refreshToken)
 
             const response = {
                 error: false,
@@ -66,7 +72,7 @@ class UsersHandler {
 
     async getUserProfile(req, res, next) {
         try {
-            const result = await this._service.getUserProfile(req.MRId)
+            const result = await this._service.getUserProfile(req.medicalRecordId)
 
             const response = {
                 error: false,
@@ -86,9 +92,9 @@ class UsersHandler {
 
             const { currentPassword, newPassword } = req.body
 
-            await this._service.checkCurrentPassword(req.MRId, currentPassword)
+            await this._service.checkCurrentPassword(req.medicalRecordId, currentPassword)
 
-            await this._service.changePassword(req.MRId, newPassword)
+            await this._service.changePassword(req.medicalRecordId, newPassword)
 
             const response = {
                 error: false,
@@ -99,6 +105,25 @@ class UsersHandler {
         } catch (error) {
             next(error)
         }
+    }
+
+    async logout(req, res, next) {
+        try {
+            this._validator.validateRefreshTokenPayload(req.body)
+
+            await this._service.deleteRefreshToken(req.body.refreshToken)
+
+            const response = {
+                error: false,
+                status: 200,
+                message: 'success'
+            }
+            res.status(200).json(response)
+        }
+        catch (error) {
+            next(error)
+        }
+
     }
 
 }

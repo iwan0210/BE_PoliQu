@@ -1,5 +1,6 @@
 const pool = require('mysql2/promise')
 const CryptoJS = require('crypto-js')
+const bcrypt = require('bcryptjs')
 const NotFoundError = require('../exceptions/NotFoundError')
 const InvariantError = require('../exceptions/InvariantError')
 const client = require('../../whatsappClient')
@@ -41,7 +42,7 @@ class RegisterService {
     async checkOTP(medicalRecordId, otp) {
         const [result] = await this._pool.query("SELECT no_rkm_medis, otp, valid FROM poliqu_otp WHERE no_rkm_medis = ? AND otp = ?", [medicalRecordId, otp])
 
-        if (result.length === 0) {
+        if (result.length < 1) {
             throw new NotFoundError('OTP tidak ditemukan')
         }
 
@@ -54,7 +55,10 @@ class RegisterService {
 
     async generateTemporaryToken(medicalRecordId) {
         const text = JSON.stringify({ medicalRecordId: medicalRecordId, valid: Date.now() + 15 * 60 * 1000 })
-        const encrypted = CryptoJS.AES.encrypt(text, process.env.SECRET)
+        const parsedText = CryptoJS.enc.Utf8.parse(text)
+        const key = CryptoJS.enc.Utf8.parse(process.env.SECRET);
+
+        const encrypted = CryptoJS.AES.encrypt(parsedText, key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.ZeroPadding })
         return encrypted.ciphertext.toString(CryptoJS.enc.Hex)
     }
 
@@ -72,10 +76,11 @@ class RegisterService {
     }
 
     async registerWithMedicalRecordId(medicalRecordId, password) {
-        await this._pool.query("INSERT INTO poliqu_password (no_rkm_medis, password) VALUES (?, ?)", [medicalRecordId, password])
+        const hashedPassword = await bcrypt.hash(password, 10)
+        await this._pool.query("INSERT INTO poliqu_password (no_rkm_medis, password) VALUES (?, ?)", [medicalRecordId, hashedPassword])
     }
 
-    async registerWithoutMedicalRecordId({nationalId, name, gender, dateOfBirth, address, phoneNumber, password}) {
+    async registerWithoutMedicalRecordId({ nationalId, name, gender, dateOfBirth, address, phoneNumber, password }) {
         const [result] = await this._pool.query("SELECT no_rkm_medis FROM pasien WHERE no_ktp = ?", [nationalId])
 
         if (result.length > 0) {
@@ -87,15 +92,17 @@ class RegisterService {
 
         const age = new Date().getFullYear() - new Date(dateOfBirth).getFullYear() + " Th"
 
-        const [result2] = await this._pool.query("INSERT INTO pasien VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [newMedicalRecordId, name, nationalId, gender, dateOfBirth, "-", address, "-", "BELUM MENIKAH", new Date().toISOString().split("T")[0], phoneNumber, age, "-", "DIRI SENDIRI", "-", "A09", 1, 1, 1, "-", "ALAMAT", "KELURAHAN", "KECAMATAN", "KABUPATEN", "-", 1, 1, 1, "-", "-", 1, "PROPINSI"]
+        const [result2] = await this._pool.query("INSERT INTO pasien VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [newMedicalRecordId, name, nationalId, gender, "-", new Date(dateOfBirth).toISOString().split("T")[0], "-", address, "-", "-", "BELUM MENIKAH", "Islam", new Date().toISOString().split("T")[0], phoneNumber, age, "-", "DIRI SENDIRI", "-", "A09", "-", 1, 1, 1, "-", "ALAMAT", "KELURAHAN", "KECAMATAN", "KABUPATEN", "-", 1, 1, 1, "-", "-", 1, "PROPINSI"]
         )
 
         if (result2.affectedRows < 1) {
             throw new InvariantError('Gagal mendaftarkan pasien')
         }
 
-        await this._pool.query("INSERT INTO poliqu_password (no_rkm_medis, password) VALUES (?, ?)", [newMedicalRecordId, password])
+        const hashedPassword = bcrypt.hash(password, 10)
+
+        await this._pool.query("INSERT INTO poliqu_password (no_rkm_medis, password) VALUES (?, ?)", [newMedicalRecordId, hashedPassword])
 
         await this._pool.query("UPDATE set_no_rkm_medis SET no_rkm_medis = ?", [newMedicalRecordId])
 

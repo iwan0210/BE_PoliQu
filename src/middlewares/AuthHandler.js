@@ -17,11 +17,11 @@ const verifyToken = (req, _, next) => {
 
         const decoded = jwt.verify(token, process.env.JWTTOKENSECRET)
 
-        if (!decoded.MRId) {
+        if (!decoded.medicalRecordId) {
             throw new ClientError("Invalid Token")
         }
 
-        req.MRId = decoded.MRId
+        req.medicalRecordId = decoded.medicalRecordId
         req.patientName = decoded.patientName
 
         next()

@@ -1,5 +1,8 @@
 const pool = require('mysql2/promise')
 const NotFoundError = require('../exceptions/NotFoundError')
+const InvariantError = require('../exceptions/InvariantError')
+
+
 
 class AppointmentService {
     constructor() {
@@ -18,7 +21,7 @@ class AppointmentService {
     async getAllData(MRId, page, limit) {
         const offset = (page - 1) * limit
 
-        const [records] = await this._pool.query("SELECT rp.no_rawat AS appointment_id, rp.tgl_registrasi AS registration_date, rp.jam_reg AS registration_time, d.nm_dokter AS doctor_name, p.nm_poli AS polyclinic_name, rp.stts AS status FROM reg_periksa rp JOIN dokter d ON rp.kd_dokter = d.kd_dokter JOIN poliklinik p ON rp.kd_poli = p.kd_poli WHERE rp.no_rkm_medis = ? AND rp.status_lanjut = 'Ralan' GROUP BY rp.no_rawat ORDER BY rp.tgl_registrasi DESC, rp.jam_reg DESC LIMIT ? OFFSET ?", [MRId, limit, offset])
+        const [records] = await this._pool.query("SELECT rp.no_rawat AS appointmentId, rp.tgl_registrasi AS registrationDate, rp.jam_reg AS registrationTime, d.nm_dokter AS doctorName, p.nm_poli AS polyclinicName, rp.stts AS status FROM reg_periksa rp JOIN dokter d ON rp.kd_dokter = d.kd_dokter JOIN poliklinik p ON rp.kd_poli = p.kd_poli WHERE rp.no_rkm_medis = ? AND rp.status_lanjut = 'Ralan' GROUP BY rp.no_rawat ORDER BY rp.tgl_registrasi DESC, rp.jam_reg DESC LIMIT ? OFFSET ?", [MRId, limit, offset])
 
         return records
     }
@@ -30,7 +33,7 @@ class AppointmentService {
             throw new NotFoundError("Data tidak ditemukan")
         }
 
-        const [diagnoses] = await this._pool.query("SELECT p.nm_penyakit AS disease_name FROM diagnosa d JOIN penyakit p ON d.kd_penyakit = p.kd_penyakit WHERE d.no_rawat = ? AND d.status = 'Ralan'", [appointmentId])
+        const [diagnoses] = await this._pool.query("SELECT p.nm_penyakit AS disease_name FROM diagnosa_pasien d JOIN penyakit p ON d.kd_penyakit = p.kd_penyakit WHERE d.no_rawat = ? AND d.status = 'Ralan'", [appointmentId])
 
         const [treatments] = await this._pool.query("SELECT jp.nm_perawatan AS treatment_name FROM ( SELECT no_rawat, kd_jenis_prw FROM rawat_jl_dr UNION ALL SELECT no_rawat, kd_jenis_prw FROM rawat_jl_pr UNION ALL SELECT no_rawat, kd_jenis_prw FROM rawat_jl_drpr ) r JOIN jns_perawatan jp ON r.kd_jenis_prw = jp.kd_jenis_prw WHERE r.no_rawat = ?", [appointmentId])
 
@@ -41,21 +44,21 @@ class AppointmentService {
         const [medications] = await this._pool.query("SELECT db.nama_brng AS medicine_name FROM detail_pemberian_obat dpo JOIN databarang db ON dpo.kode_brng = db.kode_brng WHERE dpo.no_rawat = ?", [appointmentId])
 
         return {
-            visit_number: patient[0].appointment_id,
-            medical_record_number: patient[0].mr_id,
-            doctor_name: patient[0].doctor_name,
-            polyclinic_name: patient[0].polyclinic_name,
-            registration_date: patient[0].registration_date,
+            appointmentId: patient[0].appointment_id,
+            medicalRecordId: patient[0].mr_id,
+            doctorName: patient[0].doctor_name,
+            polyclinicName: patient[0].polyclinic_name,
+            registrationTime: patient[0].registration_date,
             diagnoses: diagnoses.map(d => d.disease_name),
             treatments: treatments.map(t => t.treatment_name),
-            lab_tests: labtests.map(l => l.lab_test_name),
-            radiology_tests: radiologyTests.map(r => r.radiology_test_name),
+            labTests: labtests.map(l => l.lab_test_name),
+            radiologyTests: radiologyTests.map(r => r.radiology_test_name),
             medications: medications.map(m => m.medicine_name)
         }
     }
 
     async getDetailActiveData(appointmentId) {
-        const [patient] = await this._pool.query("SELECT rp.no_rawat AS visit_number, rp.no_reg AS registration_number, rp.tgl_registrasi AS registration_date, rp.kd_dokter AS doctor_id, rp.kd_poli AS polyclinic_id, d.nm_dokter AS doctor_name, p.nm_poli AS polyclinic_name, rp.stts AS status, WEEKDAY(rp.tgl_registrasi) AS registration_day FROM reg_periksa rp JOIN dokter d ON rp.kd_dokter = d.kd_dokter JOIN poliklinik p ON rp.kd_poli = p.kd_poli WHERE rp.no_rkm_medis = ? AND rp.status_lanjut = 'Ralan' ORDER BY rp.tgl_registrasi DESC LIMIT 1", [appointmentId])
+        const [patient] = await this._pool.query("SELECT rp.no_rawat AS visit_number, rp.no_reg AS registration_number, rp.tgl_registrasi AS registration_date, rp.kd_dokter AS doctor_id, rp.kd_poli AS polyclinic_id, d.nm_dokter AS doctor_name, p.nm_poli AS polyclinic_name, rp.stts AS status, WEEKDAY(rp.tgl_registrasi) AS registration_day FROM reg_periksa rp JOIN dokter d ON rp.kd_dokter = d.kd_dokter JOIN poliklinik p ON rp.kd_poli = p.kd_poli WHERE rp.no_rawat = ? AND rp.status_lanjut = 'Ralan' ORDER BY rp.tgl_registrasi DESC LIMIT 1", [appointmentId])
 
         if (patient.length < 1) {
             throw new NotFoundError("Data tidak ditemukan")
@@ -63,10 +66,10 @@ class AppointmentService {
 
         const daysIndonesian = ["AKHAD", "SENIN", "SELASA", "RABU", "KAMIS", "JUMAT", "SABTU"]
         const visit = patient[0];
-        const registrationDayIndonesian = daysIndonesian[visit.registration_day]
+        const registrationDayIndonesian = daysIndonesian[visit.registration_day + 1]
+
 
         const [schedule] = await this._pool.query("SELECT jam_mulai FROM jadwal WHERE kd_dokter = ? AND kd_poli = ? AND hari_kerja = ? LIMIT 1", [visit.doctor_id, visit.polyclinic_id, registrationDayIndonesian])
-
         const polyclinicStartTime = schedule[0].jam_mulai
 
         const [servedPatients] = await this._pool.query("SELECT COUNT(*) AS served_count FROM reg_periksa WHERE kd_dokter = ? AND kd_poli = ? AND tgl_registrasi = ? AND stts != 'Belum'", [visit.doctor_id, visit.polyclinic_id, visit.registration_date])
@@ -82,12 +85,12 @@ class AppointmentService {
 
         return {
             appointmentId: visit.visit_number,
-            doctor_name: visit.doctor_name,
-            polyclinic_name: visit.polyclinic_name,
-            registration_date: visit.registration_date,
-            registration_number: visit.registration_number,
-            served_patients: servedCount,
-            estimated_time: estimated_time,
+            doctorName: visit.doctor_name,
+            polyclinicName: visit.polyclinic_name,
+            registrationDate: visit.registration_date,
+            registrationMumber: visit.registration_number,
+            servedPatients: servedCount,
+            estimatedTime: estimated_time,
             status: visit.status
         };
     }
@@ -177,7 +180,7 @@ class AppointmentService {
 
         const noRawat = (result.length === 0) ? "000001" : String(parseInt(result[0].noRawat) + 1).padStart(6, '0')
 
-        return `${registration_date.replace(/-/g, '')}${noRawat}`
+        return `${registration_date.replace(/-/g, '/')}/${noRawat}`
     }
 
     async setAppointmentStatus(MRId) {

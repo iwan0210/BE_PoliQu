@@ -24,11 +24,15 @@ const verifyTempToken = (req, _, next) => {
 }
 
 const decodeTempToken = (tempToken) => {
-    const encryptedWordArray = CryptoJS.enc.Hex.parse(tempToken);
-    const encryptedBase64 = CryptoJS.enc.Base64.stringify(encryptedWordArray);
+    const key = CryptoJS.enc.Utf8.parse(process.env.SECRET);
 
-    const decrypted = CryptoJS.AES.decrypt(encryptedBase64, process.env.SECRET);
-    return JSON.parse(decrypted.toString(CryptoJS.enc.Utf8));
+    const decrypted = CryptoJS.AES.decrypt({
+        ciphertext: CryptoJS.enc.Hex.parse(tempToken)
+    }, key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.ZeroPadding })
+
+    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8)
+
+    return JSON.parse(decryptedText); // Convert JSON string back to object
 }
 
-module.exports = {verifyTempToken}
+module.exports = { verifyTempToken }

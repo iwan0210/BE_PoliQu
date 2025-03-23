@@ -18,7 +18,7 @@ class RadiologyService {
     async getAllData(MRId, page, limit) {
         const offset = (page - 1) * limit
 
-        const [records] = await this._pool.query("Select no_rawat, tgl_periksa, jam from periksa_radiologi where no_rkm_medis = ? group by tgl_periksa, jam, no_rawat order by tgl_periksa desc, jam desc limit ? offset ?", [MRId, limit, offset])
+        const [records] = await this._pool.query("SELECT periksa_radiologi.no_rawat as appointmentId, periksa_radiologi.tgl_periksa as date, periksa_radiologi.jam as time FROM periksa_radiologi JOIN reg_periksa ON periksa_radiologi.no_rawat = reg_periksa.no_rawat WHERE reg_periksa.no_rkm_medis = ? GROUP BY periksa_radiologi.tgl_periksa, periksa_radiologi.jam, periksa_radiologi.no_rawat ORDER BY tgl_periksa DESC, jam DESC LIMIT ? OFFSET ?", [MRId, limit, offset])
 
         return records
     }

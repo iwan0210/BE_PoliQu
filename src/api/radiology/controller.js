@@ -15,7 +15,7 @@ class RadiologyHandler {
             page = parseInt(page)
             limit = parseInt(limit)
 
-            const result = await this._service.getAllData(req.MRId, page, limit)
+            const result = await this._service.getAllData(req.medicalRecordId, page, limit)
 
             const response = {
                 error: false,

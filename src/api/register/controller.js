@@ -38,7 +38,7 @@ class RegisterHandler {
         try {
             this._validator.validateOTP(req.body)
 
-            await this._service.checkOTP(req.MRId, req.body.otp)
+            await this._service.checkOTP(req.params.medicalRecordId, req.body.code)
 
             const temporaryToken = await this._service.generateTemporaryToken(req.params.medicalRecordId)
 
@@ -52,7 +52,7 @@ class RegisterHandler {
             }
             res.status(200).json(response)
         } catch (error) {
-            next
+            next(error)
         }
     }
 
@@ -64,7 +64,7 @@ class RegisterHandler {
                 status: 200,
                 message: 'success',
                 data: {
-                    patient
+                    ...patient
                 }
             }
             res.status(200).json(response)
@@ -75,7 +75,7 @@ class RegisterHandler {
 
     async postRegisterWithMedicalRecordId(req, res, next) {
         try {
-            this._validator.validateRegisterWithMedicalRecordId(req.body)
+            this._validator.validateRegisterWithMedicalRecordIdPayload(req.body)
 
             await this._service.checkUserExist(req.medicalRecordId)
 
@@ -94,7 +94,7 @@ class RegisterHandler {
 
     async postRegisterWithoutMedicalRecordId(req, res, next) {
         try {
-            this._validator.validateRegisterWithoutMedicalRecordId(req.body)
+            this._validator.validateRegisterWithoutMedicalRecordIdPayload(req.body)
 
             await this._service.checkUserExist(req.body.nationalId)
 

@@ -6,7 +6,7 @@ const RegisterSchema = {
         nationalId: Joi.string().required().length(16),
     }),
     otpPayloadSchema: Joi.object({
-        otp: Joi.string().required().length(6),
+        code: Joi.string().required().length(6),
     }),
     registerWithMedicalRecordIdPayloadSchema: Joi.object({
         password: Joi.string().required(),

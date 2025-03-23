@@ -12,13 +12,13 @@ class AppointmentHandler {
 
     async getAllData(req, res, next) {
         try {
-            this._validator.validateLabPayload(req.query)
+            this._validator.validateAppointmentPayload(req.query)
 
             let { page = 1, limit = 10 } = req.query
             page = parseInt(page)
             limit = parseInt(limit)
 
-            const result = await this._service.getAllData(req.MRId, page, limit)
+            const result = await this._service.getAllData(req.medicalRecordId, page, limit)
 
             const response = {
                 error: false,
@@ -36,10 +36,10 @@ class AppointmentHandler {
 
     async getDetailData(req, res, next) {
         try {
-            const patientVisitId = decodeURIComponent(req.params.patientVisitId)
-            this._validator.AppointmentDetailPayloadSchema({ patientVisitId })
+            const appointmentId = decodeURIComponent(req.params.patientVisitId)
+            this._validator.validateAppointmentDetailPayload({ appointmentId })
 
-            const result = await this._service.getDetailData(patientVisitId)
+            const result = await this._service.getDetailData(appointmentId)
 
             const response = {
                 error: false,
@@ -55,10 +55,10 @@ class AppointmentHandler {
 
     async getDetailActiveData(req, res, next) {
         try {
-            const patientVisitId = decodeURIComponent(req.params.patientVisitId)
-            this._validator.AppointmentDetailPayloadSchema({ patientVisitId })
+            const appointmentId = decodeURIComponent(req.params.patientVisitId)
+            this._validator.validateAppointmentDetailPayload({ appointmentId })
 
-            const result = await this._service.getDetailActiveData(patientVisitId)
+            const result = await this._service.getDetailActiveData(appointmentId)
 
             const response = {
                 error: false,
@@ -75,12 +75,12 @@ class AppointmentHandler {
     async addData(req, res, next) {
         try {
             const data = req.body
-            this._validator.AddAppointmentPayloadSchema(data)
+            this._validator.validateAddAppointmentPayload(data)
 
-            const result = await this._service.addData(
+            const result = await this._service.addAppointment(
                 data.time,
                 data.doctorId,
-                req.MRId,
+                req.medicalRecordId,
                 data.polyclinicId,
                 data.date
             )
@@ -99,10 +99,10 @@ class AppointmentHandler {
 
     async cancelAppointment(req, res, next) {
         try {
-            const patientVisitId = decodeURIComponent(req.params.patientVisitId)
-            this._validator.AppointmentDetailPayloadSchema({ patientVisitId })
+            const appointmentId = decodeURIComponent(req.params.patientVisitId)
+            this._validator.validateAppointmentDetailPayload({ appointmentId })
 
-            this._service.cancelAppointment(patientVisitId)
+            this._service.cancelAppointment(appointmentId)
 
             const response = {
                 error: false,
